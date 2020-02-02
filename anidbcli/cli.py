@@ -57,9 +57,10 @@ def ed2k(ctx , files, clipboard):
 @click.option("--persistent", "-t", default=False, is_flag=True, help="Save session info for next invocations with this parameter. (35 minutes session lifetime)")
 @click.option("--abort", default=False, is_flag=True, help="Abort if an usable tag is empty.")
 @click.option("--state", default=0, help="Specify the file state. (0-4)")
+@click.option("--watched", default=0, help="Has the file been seen?")
 @click.argument("files", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
-def api(ctx, username, password, apikey, add, rename, files, keep_structure, date_format, delete_empty, link, softlink, persistent, abort, state):
+def api(ctx, username, password, apikey, add, rename, files, keep_structure, date_format, delete_empty, link, softlink, persistent, abort, state,watched):
     if (not add and not rename):
         ctx.obj["output"].info("Nothing to do.")
         return
@@ -72,7 +73,7 @@ def api(ctx, username, password, apikey, add, rename, files, keep_structure, dat
     pipeline = []
     pipeline.append(operations.HashOperation(ctx.obj["output"]))
     if add:
-        pipeline.append(operations.MylistAddOperation(conn, ctx.obj["output"], state))
+        pipeline.append(operations.MylistAddOperation(conn, ctx.obj["output"], state, watched))
     if rename:
         pipeline.append(operations.GetFileInfoOperation(conn, ctx.obj["output"]))
         pipeline.append(operations.RenameOperation(ctx.obj["output"], rename, date_format, delete_empty, keep_structure, softlink, link, abort))
@@ -86,7 +87,7 @@ def api(ctx, username, password, apikey, add, rename, files, keep_structure, dat
             if not res: # Critical error, cannot proceed with pipeline
                 break
     conn.close(persistent, get_persistent_file_path())
-        
+
 def get_connector(apikey, username, password, persistent):
     conn = None
     if persistent:
@@ -112,7 +113,7 @@ def get_persistent_file_path():
     else:
         path = os.path.join(path, "anidbcli", "session.json")
     return path
-    
+
 def get_files_to_process(files, ctx):
     to_process = []
     for file in files:

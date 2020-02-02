@@ -6,15 +6,15 @@ import glob
 import errno
 import time
 
-import anidbcli.libed2k as libed2k 
+import anidbcli.libed2k as libed2k
 
 # ed2k,md5,sha1,crc32,resolution,aired,year,romanji,kanji,english,epno,epname,epromanji,epkanji,groupname,shortgroupname
 API_ENDPOINT_FILE = "FILE size=%d&ed2k=%s&fmask=79FAFFE900&amask=F2FCF0C0"
 API_ENDPOINT_FILE_ONLY_ANIMEINFO = "FILE size=%d&ed2k=%s&fmask=0000000000&amask=F2FCF0C0"
 
 
-API_ENDPOINT_MYLYST_ADD = "MYLISTADD size=%d&ed2k=%s&viewed=1&state=%s"
-API_ENDPOINT_MYLYST_EDIT = "MYLISTADD size=%d&ed2k=%s&edit=1&viewed=1&state=%s"
+API_ENDPOINT_MYLYST_ADD = "MYLISTADD size=%d&ed2k=%s&viewed=%s&state=%s"
+API_ENDPOINT_MYLYST_EDIT = "MYLISTADD size=%d&ed2k=%s&edit=1&viewed=%s&state=%s"
 
 RESULT_FILE = 220
 RESULT_MYLIST_ENTRY_ADDED = 210
@@ -30,13 +30,15 @@ class Operation:
     def Process(self, file): pass
 
 class MylistAddOperation(Operation):
-    def __init__(self, connector, output, state):
+    def __init__(self, connector, output, state, watched):
         self.connector = connector
         self.output = output
-        self.state = state 
+        self.state = state
+        self.watched = watched
     def Process(self, file):
         try:
-            res = self.connector.send_request(API_ENDPOINT_MYLYST_ADD % (file["size"], file["ed2k"], int(self.state)))
+            res = self.connector.send_request(API_ENDPOINT_MYLYST_ADD % (file["size"], file["ed2k"],\
+                    int(self.watched), int(self.state)))
             if res["code"] == RESULT_MYLIST_ENTRY_ADDED:
                 self.output.success("Mylist entry added.")
             elif res["code"] == RESULT_ALREADY_IN_MYLIST:
@@ -143,7 +145,7 @@ class GetFileInfoOperation(Operation):
         fileinfo["g_sname"] = parsed[41]
         fileinfo["version"] = ""
         fileinfo["censored"] = ""
-        
+
         status = int(fileinfo["file_state"])
         if status & 4: fileinfo["version"] = "v2"
         if status & 8: fileinfo["version"] = "v3"
